@@ -92,7 +92,7 @@ define l23network::l3::ifconfig (
     $dhcp_nowait     = false,
     $ifname_order_prefix = false,
     $check_by_ping   = 'gateway',
-    $check_by_ping_timeout = 120,
+    $check_by_ping_timeout = 30,
     #todo: label => "XXX", # -- "ip addr add..... label XXX"
 ){
   include ::l23network::params
@@ -291,6 +291,7 @@ define l23network::l3::ifconfig (
   l3_if_downup {"$interface":
     check_by_ping => $check_by_ping,
     check_by_ping_timeout => $check_by_ping_timeout,
+    #require       => File["$interface_file"], ## do not enable it!!! It affect requirements interface from interface in some cases.
     subscribe     => File["$interface_file"],
     refreshonly   => true,
   }
