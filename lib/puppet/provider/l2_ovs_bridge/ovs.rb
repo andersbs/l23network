@@ -57,12 +57,12 @@ Puppet::Type.type(:l2_ovs_bridge).provide(:ovs) do
   private
 
   def set_port_properties()
-    if @resource[:interface_properties]
-      for option in Array(@resource[:interface_properties])
+    if @resource[:port_properties]
+      for option in Array(@resource[:port_properties])
         begin
           vsctl('--', "set", "Port", @resource[:bridge], option.to_s)
         rescue Puppet::ExecutionFailure => error
-          raise Puppet::ExecutionFailure, "Interface '#{@resource[:bridge]}' can't set option '#{option}':\n#{error}"
+          raise Puppet::ExecutionFailure, "Port '#{@resource[:bridge]}' can't set option '#{option}':\n#{error}"
         end
       end
     end

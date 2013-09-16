@@ -16,12 +16,20 @@ Puppet::Type.type(:l2_ovs_port).provide(:ovs) do
     rescue Puppet::ExecutionFailure
       # pass
     end
+    # tag and trunks for port
+    port_properties = @resource[:port_properties]
+    if @resource[:tag] > 0
+      port_properties.insert(-1, "tag=#{@resource[:tag]}")
+    end
+    if not @resource[:trunks].empty?
+      port_properties.insert(-1, "trunks=[#{@resource[:trunks].join(',')}]")
+    end
     # Port create begins from definition brodge and port
     cmd = [@resource[:bridge], @resource[:interface]]
     # add port properties (k/w) to command line
-    if @resource[:port_properties]
-      for option in Array(@resource[:port_properties])
-        cmd += [option]
+    if not port_properties.empty?
+      for option in port_properties
+        cmd.insert(-1, option)
       end
     end
     # set interface type
@@ -39,7 +47,7 @@ Puppet::Type.type(:l2_ovs_port).provide(:ovs) do
     end
     # set interface properties
     if @resource[:interface_properties]
-      for option in Array(@resource[:interface_properties])
+      for option in @resource[:interface_properties]
         begin
           vsctl('--', "set", "Interface", @resource[:interface], option.to_s)
         rescue Puppet::ExecutionFailure => error

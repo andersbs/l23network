@@ -15,7 +15,7 @@ Puppet::Type.newtype(:l2_ovs_bridge) do
       end
     end
 
-    newparam(:port_properties) do
+    newparam(:port_properties, :array_matching => :all) do
       defaultto([])
       desc "Array of port properties"
       validate do |val|
@@ -25,7 +25,7 @@ Puppet::Type.newtype(:l2_ovs_bridge) do
       end
     end
 
-    newparam(:interface_properties) do
+    newparam(:interface_properties, :array_matching => :all) do
       defaultto([])
       desc "Array of port interface properties"
       validate do |val|
