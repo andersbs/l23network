@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'puppetlabs_spec_helper/module_spec_helper'
 
 describe 'array_part' do
   let(:scope) { PuppetlabsSpec::PuppetInternals.scope }

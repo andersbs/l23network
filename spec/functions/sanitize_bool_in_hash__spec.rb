@@ -1,14 +1,12 @@
-require 'spec_helper'
+require 'puppetlabs_spec_helper/module_spec_helper'
 
 describe 'sanitize_bool_in_hash' do
-  let(:scope) { PuppetlabsSpec::PuppetInternals.scope }
-
   it 'should exist' do
-    Puppet::Parser::Functions.function('sanitize_bool_in_hash').should == 'function_sanitize_bool_in_hash'
+    expect(Puppet::Parser::Functions.function('sanitize_bool_in_hash')).to eq('function_sanitize_bool_in_hash')
   end
 
   it 'should convert string-boolean values to boolean' do
-    should run.with_params({
+    expect run.with_params({
       :s_true  => 'true',
       :s_false => 'false',
       :s_none => 'none',
@@ -26,7 +24,7 @@ describe 'sanitize_bool_in_hash' do
   end
 
   it 'should convert UP-sace string-boolean values to boolean' do
-    should run.with_params({
+    expect run.with_params({
       :s_true  => 'TRUE',
       :s_false => 'FALSE',
       :s_none => 'NONE',
@@ -44,7 +42,7 @@ describe 'sanitize_bool_in_hash' do
   end
 
   it 'should convert reccursive hashes' do
-    should run.with_params({
+    expect run.with_params({
       :bool_hash => {
         :str => 'aaa',
         :int => 123,
@@ -102,7 +100,7 @@ describe 'sanitize_bool_in_hash' do
   end
 
   it 'should convert array of hashes' do
-    should run.with_params({ :array => [
+    expect run.with_params({ :array => [
       {:aaa=>1,"aaa"=>11, :bbb=>2,'bbb'=>12, :ccc=>3,'ccc'=>3},
       {:t=>'true','tt'=>'true', :f=>'false','ff'=>'false', :n=>'nil','nn'=>'nil'},
       {
@@ -141,12 +139,6 @@ describe 'sanitize_bool_in_hash' do
         :s_nill => nil,
       },
     ]})
-  end
-
-  it 'should throw an error' do
-    lambda {
-     scope.function_merge_arrays(['xxx'])
-    }.should(raise_error(Puppet::ParseError))
   end
 
 end

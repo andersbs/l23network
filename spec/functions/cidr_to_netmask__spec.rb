@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'puppetlabs_spec_helper/module_spec_helper'
 
 describe 'cidr_to_netmask' do
   let(:scope) { PuppetlabsSpec::PuppetInternals.scope }

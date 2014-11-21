@@ -1,2 +1,12 @@
-name 'Mirantis-l23network'
+name 'l23network'
+version      '0.2.0'
+author       'Sergey Vasilenko'
+license      'Apache License 2.0'
+summary      'Puppet module for L2 and L3 network configuration'
+description  'Installs and configures open vSwitch, linux bridging, bonding, ethtool, etc... for powerfull Networking.'
+project_page 'https://github.com/xenolog/l23network'
+source       'https://github.com/xenolog/l23network'
 
+dependency 'puppetlabs/inifile', '>=1.0.0 <2.0.0'
+dependency 'puppetlabs/stdlib', '>=4.0.0 <5.0.0'
+#dependency 'duritong/sysctl', '>=0.0.1 <1.0.0'

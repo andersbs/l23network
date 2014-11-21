@@ -1,14 +1,5 @@
-require 'spec_helper'
-begin
-  require 'puppet/parser/functions/lib/l23network_scheme.rb'
-rescue LoadError => e
-  # puppet apply does not add module lib directories to the $LOAD_PATH (See
-  # #4248). It should (in the future) but for the time being we need to be
-  # defensive which is what this rescue block is doing.
-  rb_file = File.join(File.dirname(__FILE__),'lib','l23network_scheme.rb')
-  load rb_file if File.exists?(rb_file) or raise e
-end
-
+require 'puppetlabs_spec_helper/module_spec_helper'
+require 'puppet/parser/functions/lib/l23network_scheme.rb'
 
 describe 'generate_network_config' do
   let(:scope) { PuppetlabsSpec::PuppetInternals.scope }

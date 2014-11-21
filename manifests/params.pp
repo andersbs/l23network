@@ -1,4 +1,6 @@
+#
 class l23network::params {
+
   if is_float($::kernelmajversion) {
     $kernelmajversion_f = 0 + $::kernelmajversion  # just a hack for convert string to float
   } else {
