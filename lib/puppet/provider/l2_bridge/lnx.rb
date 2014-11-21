@@ -1,5 +1,6 @@
-Puppet::Type.type(:l2_ovs_bridge).provide(:ovs) do
-  optional_commands :vsctl => "/usr/bin/ovs-vsctl"
+Puppet::Type.type(:l2_bridge).provide(:lnx) do
+  confine :osfamily => :Darwin
+  commands :vsctl => "/usr/bin/ovs-vsctl"
 
   def exists?
     vsctl("br-exists", @resource[:bridge])

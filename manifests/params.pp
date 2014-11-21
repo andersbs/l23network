@@ -12,9 +12,10 @@ class l23network::params {
       $lnx_vlan_tools     = 'vlan'
       $lnx_bond_tools     = 'ifenslave'
       $lnx_ethernet_tools = 'ethtool'
-      $ovs_datapath_package_name = $kernelmajversion_f > 0 and $kernelmajversion_f < 3.13 ? {
-        true    => 'openvswitch-datapath-lts-saucy-dkms',
-        default => false
+      if $kernelmajversion_f > 0 and $kernelmajversion_f < 3.13 {
+        $ovs_datapath_package_name = 'openvswitch-datapath-lts-saucy-dkms'
+      } else {
+        $ovs_datapath_package_name = false
       }
       $ovs_common_package_name = 'openvswitch-switch'
     }
@@ -24,11 +25,20 @@ class l23network::params {
       $lnx_vlan_tools     = 'vconfig'
       $lnx_bond_tools     = undef
       $lnx_ethernet_tools = 'ethtool'
-      $ovs_datapath_package_name = $kernelmajversion_f > 0 and $kernelmajversion_f < 3.10 ? {
-        true    => 'kmod-openvswitch',
-        default => false
+      if $kernelmajversion_f > 0 and $kernelmajversion_f < 3.10 {
+        $ovs_datapath_package_name = 'kmod-openvswitch'
+      } else {
+        $ovs_datapath_package_name = false
       }
       $ovs_common_package_name   = 'openvswitch'
+    }
+    /(?i)darwin/: {
+      $ovs_service_name   = undef
+      $lnx_vlan_tools     = undef
+      $lnx_bond_tools     = undef
+      $lnx_ethernet_tools = undef
+      $ovs_datapath_package_name = undef
+      $ovs_common_package_name   = undef
     }
     default: {
       fail("Unsupported OS: ${::osfamily}/${::operatingsystem}")
