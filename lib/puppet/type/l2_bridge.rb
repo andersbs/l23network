@@ -20,6 +20,7 @@ Puppet::Type.newtype(:l2_bridge) do
     newproperty(:vendor_specific) do
       desc "Vendor specific fields."
       #
+      defaultto {}
       validate do |val|
         if val and val.class.to_s != 'Hash'
           fail("Vendor specific fields should be a hash if given.")
@@ -29,6 +30,12 @@ Puppet::Type.newtype(:l2_bridge) do
 
     newproperty(:external_ids) do
       desc "External IDs for the bridge"
+      defaultto ''
+      validate do |val|
+        if @resource.provider.class.name != :ovs
+          warn("!!! External_ids implemented only for OVS bridges.")
+        end
+      end
     end
 
     # global validator
