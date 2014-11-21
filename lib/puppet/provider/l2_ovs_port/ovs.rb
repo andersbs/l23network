@@ -2,7 +2,7 @@ Puppet::Type.type(:l2_ovs_port).provide(:ovs) do
   optional_commands :vsctl => "/usr/bin/ovs-vsctl"
 
   def exists?
-    vsctl("list-ports", @resource[:bridge]).include? @resource[:interface]
+    vsctl("list-ports", @resource[:bridge]).split(/\n+/).include? @resource[:interface]
   end
 
   def create
@@ -18,8 +18,8 @@ Puppet::Type.type(:l2_ovs_port).provide(:ovs) do
     end
     # tag and trunks for port
     port_properties = @resource[:port_properties]
-    if @resource[:tag] > 0
-      port_properties.insert(-1, "tag=#{@resource[:tag]}")
+    if @resource[:vlan_id] > 0
+      port_properties.insert(-1, "tag=#{@resource[:vlan_id]}")
     end
     if not @resource[:trunks].empty?
       port_properties.insert(-1, "trunks=[#{@resource[:trunks].join(',')}]")
@@ -33,7 +33,6 @@ Puppet::Type.type(:l2_ovs_port).provide(:ovs) do
       end
     end
     # set interface type
-    #TODO: implement type=>patch sintax as type=>'patch:peer-name'
     if @resource[:type] and @resource[:type].to_s != ''
       tt = "type=" + @resource[:type].to_s
       cmd += ['--', "set", "Interface", @resource[:interface], tt]
@@ -53,6 +52,16 @@ Puppet::Type.type(:l2_ovs_port).provide(:ovs) do
         rescue Puppet::ExecutionFailure => error
           raise Puppet::ExecutionFailure, "Interface '#{@resource[:interface]}' can't set option '#{option}':\n#{error}"
         end
+      end
+    end
+    # enable vlan_splinters if need
+    if @resource[:vlan_splinters].to_s() == 'true'  # puppet send non-boolean value instead true/false
+      Puppet.debug("Interface '#{@resource[:interface]}' vlan_splinters is '#{@resource[:vlan_splinters]}' [#{@resource[:vlan_splinters].class}]")
+      begin
+        vsctl('--', "set", "Port", @resource[:interface], "vlan_mode=trunk")
+        vsctl('--', "set", "Interface", @resource[:interface], "other-config:enable-vlan-splinters=true")
+      rescue Puppet::ExecutionFailure => error
+        raise Puppet::ExecutionFailure, "Interface '#{@resource[:interface]}' can't setup vlan_splinters:\n#{error}"
       end
     end
   end

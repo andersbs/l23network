@@ -4,6 +4,7 @@ class l23network::params {
   } else {
     $kernelmajversion_f = -1
   }
+
   case $::osfamily {
     /(?i)debian/: {
       $ovs_service_name   = 'openvswitch-switch'
@@ -11,41 +12,27 @@ class l23network::params {
       $lnx_vlan_tools     = 'vlan'
       $lnx_bond_tools     = 'ifenslave'
       $lnx_ethernet_tools = 'ethtool'
-      if $kernelmajversion_f > 0 and $kernelmajversion_f < 3.13 {
-        $ovs_packages       = ['openvswitch-datapath-dkms', 'openvswitch-switch']
-      } else {
-        $ovs_packages       = ['openvswitch-switch']
+      $ovs_datapath_package_name = $kernelmajversion_f > 0 and $kernelmajversion_f < 3.13 ? {
+        true    => 'openvswitch-datapath-lts-saucy-dkms',
+        default => false
       }
+      $ovs_common_package_name = 'openvswitch-switch'
     }
     /(?i)redhat/: {
-      $ovs_service_name   = 'openvswitch' #'ovs-vswitchd'
+      $ovs_service_name   = 'openvswitch'
       $ovs_status_cmd     = '/etc/init.d/openvswitch status'
       $lnx_vlan_tools     = 'vconfig'
       $lnx_bond_tools     = undef
       $lnx_ethernet_tools = 'ethtool'
-      if $kernelmajversion_f > 0 and $kernelmajversion_f < 3.10 {
-        $ovs_packages       = ['kmod-openvswitch', 'openvswitch']
-      } else {
-        $ovs_packages       = ['openvswitch']
+      $ovs_datapath_package_name = $kernelmajversion_f > 0 and $kernelmajversion_f < 3.10 ? {
+        true    => 'kmod-openvswitch',
+        default => false
       }
-    }
-    /(?i)linux/: {
-      case $::operatingsystem {
-        /(?i)archlinux/: {
-          $ovs_service_name   = 'openvswitch.service'
-          $ovs_status_cmd     = 'systemctl status openvswitch'
-          $ovs_packages       = ['aur/openvswitch']
-          $lnx_vlan_tools     = 'aur/vconfig'
-          $lnx_bond_tools     = 'core/ifenslave'
-          $lnx_ethernet_tools = 'extra/ethtool'
-        }
-        default: {
-          fail("Unsupported OS: ${::osfamily}/${::operatingsystem}")
-        }
-      }
+      $ovs_common_package_name   = 'openvswitch'
     }
     default: {
       fail("Unsupported OS: ${::osfamily}/${::operatingsystem}")
     }
   }
 }
+# vim: set ts=2 sw=2 et :

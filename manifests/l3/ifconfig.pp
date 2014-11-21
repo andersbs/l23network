@@ -16,6 +16,9 @@
 # [*netmask*]
 #   Specify network mask. Default is '255.255.255.0'.
 #
+# [*macaddr*]
+#   Specify macaddr if need change.
+#
 # [*vlandev*]
 #   If you configure 802.1q vlan interface with name like 'vlanXXX'
 #   you must specify a parent interface in this option
@@ -24,15 +27,17 @@
 #   This parameter sets the bond_master interface and says that this interface
 #   is a slave for bondX interface.
 #
-# [*bond_mode*]
-#   This parameter specifies a bond mode for interfaces like bondNN.
-#   All bond_* properties are ignored for non-bond-master interfaces.
+# [*bond_properties*]
+#   This parameter specifies a bond properties for interfaces like bondNN.
+#   It's a property hash, that should contains native linux bonding options, ex:
+#   bond_properties => {
+#     mode   => 1, # mode is a obligatory option
+#     miimon => 100,
+#     ....
+#   }
 #
-# [*bond_miimon*]
-#   lacp MII monitor period.
-#
-# [*bond_lacp_rate*]
-#   lacp MII rate
+#   bond_properties will be ignored for bond-slave interfaces
+#   Full set of properties we can see here: https://www.kernel.org/doc/Documentation/networking/bonding.txt
 #
 # [*ifname_order_prefix*]
 #    Sets the interface startup order
@@ -69,6 +74,10 @@
 # [*check_by_ping_timeout*]
 #   Timeout for check_by_ping
 #
+# [*ethtool*]
+#   You can specify k/w hash with ethtool key/value pairs.
+#   If this hash not empty, this ethtool with this parameters will be executed
+#   at each boot
 #
 # If you configure 802.1q vlan interfaces then you must declare relationships
 # between them in site.pp.
@@ -81,10 +90,13 @@ define l23network::l3::ifconfig (
     $gateway         = undef,
     $vlandev         = undef,
     $bond_master     = undef,
-    $bond_mode       = undef,
-    $bond_miimon     = 100,
-    $bond_lacp_rate  = 1,
+    $bond_properties = {},
+    $bond_mode       = undef,  # deprecated, should be used $bond_properties hash
+    $bond_miimon     = undef,  # deprecated, should be used $bond_properties hash
+    $bond_lacp_rate  = undef,  # deprecated, should be used $bond_properties hash
     $mtu             = undef,
+    $macaddr         = undef,
+    $ethtool         = undef,
     $dns_nameservers = undef,
     $dns_search      = undef,
     $dns_domain      = undef,
@@ -97,6 +109,12 @@ define l23network::l3::ifconfig (
 ){
   include ::l23network::params
 
+  $bond_properties_defaults = {
+      mode       => 0,
+      miimon     => 100,
+      lacp_rate  => 1,
+  }
+
   $bond_modes = [
     'balance-rr',
     'active-backup',
@@ -106,6 +124,28 @@ define l23network::l3::ifconfig (
     'balance-tlb',
     'balance-alb'
   ]
+
+  if $bond_properties[mode] or $bond_mode {
+    $actual_bond_properties = get_hash_with_defaults_and_deprecations(
+      $bond_properties,
+      $bond_properties_defaults,
+      {
+        mode       => $bond_mode,
+        miimon     => $bond_miimon,
+        lacp_rate  => $bond_lacp_rate,
+      }
+    )
+  } else {
+    $actual_bond_properties = { mode => undef, }
+  }
+
+  if $macaddr and $macaddr !~ /^([0-9a-fA-F]{2}\:){5}[0-9a-fA-F]{2}$/ {
+    fail("Invalid MAC address '${macaddr}' for interface '${interface}'")
+  }
+
+  if $mtu and !is_integer("${mtu}") {  # is_integer() fails if integer given :)
+    fail("Invalid MTU '${mtu}' for interface '${interface}'")
+  }
 
   # setup configure method for inteface
   if $bond_master {
@@ -123,12 +163,12 @@ define l23network::l3::ifconfig (
     case $ipaddr {
       'dhcp':  {
         $method = 'dhcp'
-        $effective_ipaddr  = $ipaddr
+        $effective_ipaddr  = 'dhcp'
         $effective_netmask = undef
       }
       'none':  {
         $method = 'manual'
-        $effective_ipaddr  = $ipaddr
+        $effective_ipaddr  = 'none'
         $effective_netmask = undef
       }
       default: {
@@ -165,7 +205,7 @@ define l23network::l3::ifconfig (
         }
       }
       Anchor <| title == 'l23network::l2::centos_upndown_scripts' |>
-        -> L23network::L3::Ifconfig <| interface == "$interface" |>
+        -> L23network::L3::Ifconfig <| interface == "${interface}" |>
     }
     default: {
       fail("Unsupported OS: ${::osfamily}/${::operatingsystem}")
@@ -174,7 +214,7 @@ define l23network::l3::ifconfig (
 
   # DNS nameservers, search and domain options
   if $dns_nameservers {
-    $dns_nameservers_list = merge_arrays( array_or_string_to_array($dns_nameservers), [false, false])
+    $dns_nameservers_list = concat(array_or_string_to_array($dns_nameservers), [false, false])
     $dns_nameservers_1 = $dns_nameservers_list[0]
     $dns_nameservers_2 = $dns_nameservers_list[1]
   }
@@ -212,11 +252,11 @@ define l23network::l3::ifconfig (
       $vlan_dev  = $1
     }
     /^(bond\d+)/: {
-      if ! $bond_mode {
-        fail("To configure the interface bonding you must the bond_mode parameter is required and must be between 0..6.")
+      if ! $actual_bond_properties[mode] {
+        fail('To configure the interface bonding you should the mode properties for bond is required and must be between 0..6.')
       }
-      if $bond_mode <0 or $bond_mode>6 {
-        fail("For interface bonding the bond_mode must be between 0..6, not '${bond_mode}'.")
+      if $actual_bond_properties[mode] <0 or $actual_bond_properties[mode] >6 {
+        fail("For interface bonding the bond mode should be between 0..6, not '${actual_bond_properties[mode]}'.")
       }
       $vlan_mode = undef
     }
@@ -243,7 +283,7 @@ define l23network::l3::ifconfig (
         $def_gateway = undef
       }
     }
-    if $::osfamily == 'RedHat' and $def_gateway and !defined(L23network::L3::Defaultroute[$def_gateway]) {
+    if ($::osfamily == 'RedHat' or $::osfamily == 'Debian') and $def_gateway and !defined(L23network::L3::Defaultroute[$def_gateway]) {
       l23network::l3::defaultroute { $def_gateway: }
     }
   } else {
@@ -251,48 +291,73 @@ define l23network::l3::ifconfig (
   }
 
   if $interfaces {
-    if ! defined(File["$interfaces"]) {
-      file {"$interfaces":
+    if ! defined(File["${interfaces}"]) {
+      file {"${interfaces}":
         ensure  => present,
         content => template('l23network/interfaces.erb'),
       }
     }
-    File<| title == "$interfaces" |> -> File<| title == "$if_files_dir" |>
+    File<| title == "${interfaces}" |> -> File<| title == "${if_files_dir}" |>
   }
 
-  if ! defined(File["$if_files_dir"]) {
-    file {"$if_files_dir":
+  if ! defined(File["${if_files_dir}"]) {
+    file {"${if_files_dir}":
       ensure  => directory,
       owner   => 'root',
       mode    => '0755',
       recurse => true,
     }
   }
-  File<| title == "$if_files_dir" |> -> File<| title == "$interface_file" |>
+  File<| title == "${if_files_dir}" |> -> File<| title == "${interface_file}" |>
 
-  file {"$interface_file":
-    ensure  => present,
-    owner   => 'root',
-    mode    => '0644',
-    content => template("l23network/ipconfig_${::osfamily}_${method}.erb"),
+  if $ethtool {
+    $ethtool_lines=ethtool_convert_hash($ethtool)
   }
-  if $::osfamily =~ /(?i)redhat/ and $ipaddr_aliases {
+
+  if $::osfamily =~ /(?i)redhat/ and ($ipaddr_aliases or $ethtool_lines) {
     file {"${if_files_dir}/interface-up-script-${interface}":
       ensure  => present,
       owner   => 'root',
       mode    => '0755',
       recurse => true,
-      content => template("l23network/ipconfig_${::osfamily}_${method}_up-script.erb"),
+      content => template("l23network/ipconfig_${::osfamily}_ifup-script.erb"),
+    } ->
+    file {"${if_files_dir}/interface-dn-script-${interface}":
+      ensure  => present,
+      owner   => 'root',
+      mode    => '0755',
+      recurse => true,
+      content => template("l23network/ipconfig_${::osfamily}_ifdn-script.erb"),
     } ->
     File <| title == $interface_file |>
   }
 
-  notify {"ifconfig_${interface}": message=>"Interface:${interface} IP:${effective_ipaddr}/${effective_netmask}", withpath=>false} ->
-  l3_if_downup {"$interface":
-    check_by_ping => $check_by_ping,
-    check_by_ping_timeout => $check_by_ping_timeout,
-    #require       => File["$interface_file"], ## do not enable it!!! It affect requirements interface from interface in some cases.
-    subscribe     => File["$interface_file"],
-    refreshonly   => true,
+  file {"${interface_file}":
+    ensure  => present,
+    owner   => 'root',
+    mode    => '0644',
+    content => template("l23network/ipconfig_${::osfamily}_${method}.erb"),
   }
+
+  # bond master interface should be upped only after including at least one slave interface to one
+  if $interface =~ /^(bond\d+)/ {
+    $l3_if_downup__subscribe = undef
+    File["${interface_file}"] -> L3_if_downup["${interface}"] # do not remove!!! we using L3_if_downup["bondXX"] in advanced_netconfig
+    # todo(sv): filter and notify  L3_if_downup["$interface"] if need.
+    # in Centos it works properly without it.
+    # May be because slaves of bond automaticaly ups master-bond
+    # L3_if_downup<| $bond_master == $interface |> ~> L3_if_downup["$interface"]
+  } else {
+    $l3_if_downup__subscribe = File["${interface_file}"]
+  }
+  notify {"ifconfig_${interface}": message=>"Interface:${interface} IP:${effective_ipaddr}/${effective_netmask}", withpath=>false} ->
+  l3_if_downup {"${interface}":
+    check_by_ping         => $check_by_ping,
+    check_by_ping_timeout => $check_by_ping_timeout,
+    #require              => File["$interface_file"], ## do not enable it!!! It affect requirements interface from interface in some cases.
+    subscribe             => $l3_if_downup__subscribe,
+    refreshonly           => true,
+  }
+
 }
+# vim: set ts=2 sw=2 et :
