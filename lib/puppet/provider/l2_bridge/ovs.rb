@@ -9,19 +9,6 @@ Puppet::Type.type(:l2_bridge).provide(:ovs) do
   end
 
   def create
-    begin
-      vsctl('br-exists', @resource[:bridge])
-      if @resource[:skip_existing]
-        notice("Bridge '#{@resource[:bridge]}' already exists, skip creating.")
-        #external_ids = @resource[:external_ids] if @resource[:external_ids]
-        return true
-      else
-        raise Puppet::ExecutionFailure, "Bridge '#{@resource[:bridge]}' already exists."
-      end
-    rescue Puppet::ExecutionFailure
-      # pass
-      notice("Bridge '#{@resource[:bridge]}' not exists, creating...")
-    end
     vsctl('add-br', @resource[:bridge])
     notice("bridge '#{@resource[:bridge]}' created.")
     # We do self.attr_setter=(value) instead of attr=value because this doesn't
@@ -34,23 +21,26 @@ Puppet::Type.type(:l2_bridge).provide(:ovs) do
     vsctl("del-br", @resource[:bridge])
   end
 
-  def _split(string, splitter=",")
-    return Hash[string.split(splitter).map{|i| i.split("=")}]
-  end
-
   def external_ids
     result = vsctl("br-get-external-id", @resource[:bridge])
-    return result.split("\n").join(",")
+    rv = {}
+    result.split("\n").each{|pair|
+      kv = pair.split(/\s*\=\s*/)
+      rv[pp[0]] = kv[1]
+    }
+    return rv
   end
 
   def external_ids=(value)
-    old_ids = _split(external_ids)
-    new_ids = _split(value)
-
-    new_ids.each_pair do |k,v|
-      unless old_ids.has_key?(k)
-        vsctl("br-set-external-id", @resource[:bridge], k, v)
-      end
+    # erase old
+    result = vsctl("br-get-external-id", @resource[:bridge])
+    result.split("\n").each{|pair|
+      kv = pair.split(/\s*\=\s*/)
+      vsctl("br-set-external-id", @resource[:bridge], kv[0])  # erase k/v pair
+    }
+    # add new
+    value.each_pair do |k,v|
+      vsctl("br-set-external-id", @resource[:bridge], k, v)
     end
   end
 end

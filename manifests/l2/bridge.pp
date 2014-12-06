@@ -13,7 +13,7 @@
 #
 define l23network::l2::bridge (
   $ensure          = present,
-  $external_ids    = "bridge-id=${name}",
+  $external_ids    = { 'bridge-id' => "${name}" },
   $stp             = false,
   $stp_properties  = {},
   $bpdu_forward    = true,
