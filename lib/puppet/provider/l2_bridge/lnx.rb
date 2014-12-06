@@ -1,56 +1,31 @@
 Puppet::Type.type(:l2_bridge).provide(:lnx) do
   confine :osfamily => :Darwin
-  commands :vsctl => "/usr/bin/ovs-vsctl"
+  commands :brctl => "/usr/sbin/brctl"
 
   def exists?
-    vsctl("br-exists", @resource[:bridge])
-  rescue Puppet::ExecutionFailure
-    return false
+    result = brctl("show", @resource[:bridge], '1>/dev/null')
+    rv = true
+    if result =~ /No\s+such\s+device/
+      rv = false
+    end
+    return rv
   end
 
   def create
-    begin
-      vsctl('br-exists', @resource[:bridge])
-      if @resource[:skip_existing]
-        notice("Bridge '#{@resource[:bridge]}' already exists, skip creating.")
-        #external_ids = @resource[:external_ids] if @resource[:external_ids]
-        return true
-      else
-        raise Puppet::ExecutionFailure, "Bridge '#{@resource[:bridge]}' already exists."
-      end
-    rescue Puppet::ExecutionFailure
-      # pass
-      notice("Bridge '#{@resource[:bridge]}' not exists, creating...")
-    end
-    vsctl('add-br', @resource[:bridge])
+    brctl('addbr', @resource[:bridge])
     notice("bridge '#{@resource[:bridge]}' created.")
-    # We do self.attr_setter=(value) instead of attr=value because this doesn't
-    # work in Puppet (our guess).
-    # TODO (adanin): Fix other places like this one. See bug #1366009
-    self.external_ids=(@resource[:external_ids]) if @resource[:external_ids]
   end
 
   def destroy
-    vsctl("del-br", @resource[:bridge])
-  end
-
-  def _split(string, splitter=",")
-    return Hash[string.split(splitter).map{|i| i.split("=")}]
+    brctl("delbr", @resource[:bridge])
   end
 
   def external_ids
-    result = vsctl("br-get-external-id", @resource[:bridge])
-    return result.split("\n").join(",")
+    notice("Bridge '#{@resource[:bridge]}': External_ids feature don't implemented for this provider.")
+    return {}
   end
 
   def external_ids=(value)
-    old_ids = _split(external_ids)
-    new_ids = _split(value)
-
-    new_ids.each_pair do |k,v|
-      unless old_ids.has_key?(k)
-        vsctl("br-set-external-id", @resource[:bridge], k, v)
-      end
-    end
+    notice("Bridge '#{@resource[:bridge]}': External_ids feature don't implemented for this provider.")
   end
 end
