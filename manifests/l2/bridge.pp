@@ -13,12 +13,12 @@
 #
 define l23network::l2::bridge (
   $ensure          = present,
-  $external_ids    = { 'bridge-id' => "${name}" },
+  $external_ids    = undef,
   $stp             = false,
   $stp_properties  = {},
   $bpdu_forward    = true,
   $vendor_specific = undef,
-  $provider        = 'ovs',
+  $provider        = undef,
 ) {
   include l23network::params
 

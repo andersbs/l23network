@@ -1,5 +1,9 @@
-Puppet::Type.type(:l2_bridge).provide(:osx) do
+require File.join(File.dirname(__FILE__), '..','..','..','puppet/provider/osx_base')
+
+Puppet::Type.type(:l2_bridge).provide(:osx, :parent => Puppet::Provider::Osx_base) do
   defaultfor :osfamily => :Darwin
+  #confine :kernel => :Linux
+  confine :osfamily => :Darwin
   commands :ifconfig => "/sbin/ifconfig"
 
   def exists?
@@ -14,11 +18,4 @@ Puppet::Type.type(:l2_bridge).provide(:osx) do
     return true
   end
 
-  def external_ids
-    return true
-  end
-
-  def external_ids=(value)
-    return 'none'
-  end
 end
