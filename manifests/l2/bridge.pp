@@ -13,11 +13,11 @@
 #
 define l23network::l2::bridge (
   $ensure          = present,
-  $external_ids    = undef,
   $stp             = false,
   $stp_properties  = {},
   $bpdu_forward    = true,
   $vendor_specific = undef,
+  $external_ids    = undef,   # default value defined in the type. Because it depends from provider.
   $provider        = undef,
 ) {
   include l23network::params
