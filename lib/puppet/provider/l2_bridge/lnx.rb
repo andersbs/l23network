@@ -1,4 +1,6 @@
-Puppet::Type.type(:l2_bridge).provide(:lnx) do
+require File.join(File.dirname(__FILE__), '..','..','..','puppet/provider/lnx_base')
+
+Puppet::Type.type(:l2_bridge).provide(:lnx, :parent => Puppet::Provider::Lnx_base) do
   confine :osfamily => :Darwin
   commands :brctl => "/usr/sbin/brctl"
 
@@ -20,12 +22,4 @@ Puppet::Type.type(:l2_bridge).provide(:lnx) do
     brctl("delbr", @resource[:bridge])
   end
 
-  def external_ids
-    notice("Bridge '#{@resource[:bridge]}': External_ids feature don't implemented for this provider.")
-    return {}
-  end
-
-  def external_ids=(value)
-    notice("Bridge '#{@resource[:bridge]}': External_ids feature don't implemented for this provider.")
-  end
 end
