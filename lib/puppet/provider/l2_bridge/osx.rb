@@ -3,7 +3,6 @@ require File.join(File.dirname(__FILE__), '..','..','..','puppet/provider/osx_ba
 Puppet::Type.type(:l2_bridge).provide(:osx, :parent => Puppet::Provider::Osx_base) do
   defaultfor :osfamily => :Darwin
   #confine :kernel => :Linux
-  confine :osfamily => :Darwin
   commands :ifconfig => "/sbin/ifconfig"
 
   def exists?

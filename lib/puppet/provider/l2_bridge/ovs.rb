@@ -1,7 +1,7 @@
 require File.join(File.dirname(__FILE__), '..','..','..','puppet/provider/ovs_base')
 
 Puppet::Type.type(:l2_bridge).provide(:ovs, :parent => Puppet::Provider::Ovs_base) do
-  confine :osfamily => :Linux
+  #confine :osfamily => :Linux
   commands :vsctl => "/usr/bin/ovs-vsctl"
 
   def exists?
