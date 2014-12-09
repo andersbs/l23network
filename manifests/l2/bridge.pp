@@ -36,6 +36,22 @@ define l23network::l2::bridge (
     $stp_forward_delay = undef
   }
 
+  cfg_file {"l2_br_config_file__$name":
+    ensure => $ensure,
+    file   => "ifcfg-${name}",
+    config => {
+      external_ids      => $external_ids,
+      # stp               => $stp,
+      # stp_system_id     => $stp_system_id,
+      # stp_priority      => $stp_priority,
+      # stp_hello_time    => $stp_hello_time,
+      # stp_max_age       => $stp_max_age,
+      # stp_forward_delay => $stp_forward_delay,
+      # bpdu_forward      => $bpdu_forward,
+      vendor_specific   => $vendor_specific,
+    },
+    provider => "${provider}_${::l23_os}"
+  } ->
   l2_bridge {$name:
     ensure            => $ensure,
     external_ids      => $external_ids,

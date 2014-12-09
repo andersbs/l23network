@@ -7,8 +7,8 @@ class l23network::params {
     $kernelmajversion_f = -1
   }
 
-  case $::osfamily {
-    /(?i)debian/: {
+  case $::l23_os {
+    /(?i)ubuntu/: {
       $ovs_service_name   = 'openvswitch-switch'
       $ovs_status_cmd     = '/etc/init.d/openvswitch-switch status'
       $lnx_vlan_tools     = 'vlan'
@@ -21,7 +21,7 @@ class l23network::params {
       }
       $ovs_common_package_name = 'openvswitch-switch'
     }
-    /(?i)redhat/: {
+    /(?i)centos/: {
       $ovs_service_name   = 'openvswitch'
       $ovs_status_cmd     = '/etc/init.d/openvswitch status'
       $lnx_vlan_tools     = 'vconfig'
@@ -34,7 +34,7 @@ class l23network::params {
       }
       $ovs_common_package_name   = 'openvswitch'
     }
-    /(?i)darwin/: {
+    /(?i)osx/: {
       $ovs_service_name   = undef
       $lnx_vlan_tools     = undef
       $lnx_bond_tools     = undef
